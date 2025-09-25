@@ -1,0 +1,16 @@
+README.md
+setup.py
+mlops_actuarial.egg-info/PKG-INFO
+mlops_actuarial.egg-info/SOURCES.txt
+mlops_actuarial.egg-info/dependency_links.txt
+mlops_actuarial.egg-info/top_level.txt
+src/__init__.py
+src/api/__init__.py
+src/api/app.py
+src/data/__init__.py
+src/data/make_dataset.py
+src/features/__init__.py
+src/features/build_features.py
+src/models/__init__.py
+src/models/predict_model.py
+src/models/train_model.py
