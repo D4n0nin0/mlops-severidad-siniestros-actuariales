@@ -1,0 +1,22 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Modelos y datos grandes (opcional)
+models/*.pkl
+data/processed/
+*.joblib
+
+# VS Code
+.vscode/
