@@ -1,0 +1,65 @@
+name: Quick Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quick-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run basic tests
+      run: |
+        # Test data module
+        python -c "
+        from src.data.make_dataset import generate_sample_data
+        df = generate_sample_data()
+        assert df.shape[0] == 1000, 'Should generate 1000 samples'
+        print('✅ Data test passed')
+        "
+        
+        # Test features module
+        python -c "
+        from src.features.build_features import create_feature_pipeline
+        pipeline = create_feature_pipeline()
+        print('✅ Features test passed')
+        "
+        
+        # Test API schema
+        python -c "
+        from src.api.app import ClaimFeatures
+        sample_data = {
+            'edad': 45,
+            'tipo_vehiculo': 'SUV',
+            'antiguedad_vehiculo': 5,
+            'region': 'Norte',
+            'historial_siniestros': 2
+        }
+        claim = ClaimFeatures(**sample_data)
+        print('✅ API schema test passed')
+        "
+
+    - name: Check file structure
+      run: |
+        # Verify required files exist
+        [ -f "Dockerfile" ] || exit 1
+        [ -f "requirements.txt" ] || exit 1
+        [ -f "src/api/app.py" ] || exit 1
+        [ -f "models/best_model.pkl" ] || exit 1
+        echo "✅ All required files present"

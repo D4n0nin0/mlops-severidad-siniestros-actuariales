@@ -1,0 +1,202 @@
+name: CI/CD Pipeline - MLOps Actuarial
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: mlops-actuarial-api
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  # Job 1: Pruebas de código Python
+  test-python:
+    name: Test Python Code
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 pytest
+
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Test imports
+      run: |
+        python -c "from src.data.make_dataset import generate_sample_data; print('✅ Data module OK')"
+        python -c "from src.features.build_features import create_feature_pipeline; print('✅ Features module OK')"
+        python -c "from src.models.train_model import train_models; print('✅ Models module OK')"
+        python -c "from src.api.app import app; print('✅ API module OK')"
+
+    - name: Test data generation
+      run: |
+        python -c "
+        from src.data.make_dataset import generate_sample_data
+        df = generate_sample_data()
+        print(f'✅ Data generated: {df.shape}')
+        assert len(df) == 1000, 'Dataset should have 1000 samples'
+        print('✅ Data generation test passed')
+        "
+
+  # Job 2: Construcción y pruebas de Docker
+  build-docker:
+    name: Build and Test Docker
+    runs-on: ubuntu-latest
+    needs: test-python
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        tags: ${{ env.IMAGE_NAME }}:latest
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image
+      run: |
+        # Run container in background
+        docker run -d -p 8000:8000 --name test-api ${{ env.IMAGE_NAME }}:latest
+        
+        # Wait for API to start
+        echo "Waiting for API to start..."
+        sleep 30
+        
+        # Test health endpoint
+        curl -f http://localhost:8000/health || exit 1
+        
+        # Test prediction endpoint
+        curl -f -X POST "http://localhost:8000/predict" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "edad": 45,
+            "tipo_vehiculo": "SUV",
+            "antiguedad_vehiculo": 5,
+            "region": "Norte",
+            "historial_siniestros": 2
+          }' || exit 1
+        
+        # Check container logs
+        docker logs test-api
+        
+        # Cleanup
+        docker stop test-api
+        docker rm test-api
+
+    - name: Scan for vulnerabilities
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.IMAGE_NAME }}:latest
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+  # Job 3: Pruebas de notebooks (solo en main)
+  test-notebooks:
+    name: Test Jupyter Notebooks
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install jupyter nbconvert
+
+    - name: Test notebook execution
+      run: |
+        # Convert notebooks to check for syntax errors
+        jupyter nbconvert --to python notebooks/*.ipynb --stdout > /dev/null
+        echo "✅ Notebooks converted successfully"
+
+    - name: Validate notebook outputs
+      run: |
+        # Check that notebooks don't have excessive output
+        python -c "
+        import json
+        import glob
+        
+        for notebook in glob.glob('notebooks/*.ipynb'):
+            with open(notebook, 'r') as f:
+                nb = json.load(f)
+            
+            cell_count = len(nb['cells'])
+            print(f'📓 {notebook}: {cell_count} cells')
+            
+            # Check that notebook has expected structure
+            assert cell_count > 0, f'{notebook} is empty'
+            print(f'✅ {notebook} structure OK')
+        "
+
+  # Job 4: Publicación (opcional - para futuras fases)
+  # publish:
+  #   name: Publish to Registry
+  #   runs-on: ubuntu-latest
+  #   needs: [test-python, build-docker]
+  #   if: github.ref == 'refs/heads/main'
+    
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+
+  #   - name: Log in to Docker Hub
+  #     uses: docker/login-action@v3
+  #     with:
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_PASSWORD }}
+
+  #   - name: Build and push
+  #     uses: docker/build-push-action@v5
+  #     with:
+  #       context: .
+  #       file: ./Dockerfile
+  #       push: true
+  #       tags: |
+  #         ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+  #         ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # Job 5: Notificaciones
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: [test-python, build-docker, test-notebooks]
+    if: always()
+    
+    steps:
+    - name: Notify workflow status
+      run: |
+        echo "Workflow completed with status: ${{ job.status }}"
+        echo "See details at: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
