@@ -64,4 +64,4 @@ echo "🧹 Limpiando contenedor..."
 docker stop $CONTAINER_NAME
 docker rm $CONTAINER_NAME
 
-echo "🎉 ¡Todas las pruebas pasaron! La imagen Docker está lista."
+echo "🎉 ¡Todas las pruebas pasaron! La imagen Docker está lista.

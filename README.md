@@ -64,6 +64,7 @@ Una vez ejecutado el programa, accede a:
 
     Interfaz de la API: http://localhost:8000
 
+
     Health Check: http://localhost:8000/health
 
 ## 🐳 Ejecución con Docker
@@ -73,3 +74,9 @@ docker build -t actuarial-mlops .
 
 ### Ejecutar el contenedor
 docker run -p 8000:8000 actuarial-mlops
+
+## Usar FastAPI
+
+uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+
+La aplicación estará disponible en http://localhost:8000/docs con la documentación interactiva de FastAPI.
