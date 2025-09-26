@@ -34,7 +34,7 @@ jobs:
         python -c "
 print('🔧 CI/CD Pipeline Validation')
 print('✓ Python environment ready')
-print('✓ Dependencies installed') 
+print('✓ Dependencies installed')
 print('✓ Project structure valid')
         "
 
