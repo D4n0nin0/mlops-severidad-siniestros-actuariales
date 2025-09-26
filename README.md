@@ -25,3 +25,49 @@ graph LR
     B --> C[Build Docker Image]
     C --> D[Test Docker Container]
     D --> E[Notify Results]
+
+# 🏥 MLOps - Sistema de Predicción de Severidad de Siniestros Actuariales
+
+Este proyecto implementa un sistema de machine learning para predecir la severidad de siniestros actuariales con un pipeline completo de MLOps.
+
+## 🚀 Ejecución Rápida
+
+### Opción 1: Usar el script automático (Recomendado)
+
+```bash
+# Dar permisos de ejecución al script
+chmod +x run_app.sh
+
+# Ejecutar la aplicación
+./run_app.sh
+
+### Opción 2: Ejecucion manual paso a paso
+
+# 1. Crear entorno virtual (opcional pero recomendado)
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate  # Windows
+
+# 2. Instalar dependencias
+pip install -r requirements.txt
+
+# 3. Ejecutar la aplicación
+python -m src.api.app
+
+# 🌐 Acceso a la Aplicación
+
+Una vez ejecutado el programa, accede a:
+
+    API Documentation: http://localhost:8000/docs
+
+    Interfaz de la API: http://localhost:8000
+
+    Health Check: http://localhost:8000/health
+
+## 🐳 Ejecución con Docker
+
+### Construir la imagen
+docker build -t actuarial-mlops .
+
+### Ejecutar el contenedor
+docker run -p 8000:8000 actuarial-mlops
