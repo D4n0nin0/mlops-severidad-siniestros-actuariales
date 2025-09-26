@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  actuarial-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/app
+    volumes:
+      - ./models:/app/models
+      - ./src:/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Servicio para pruebas (opcional)
+  api-test:
+    build: .
+    command: >
+      sh -c "pip install pytest && 
+             python -m pytest tests/ -v"
+    environment:
+      - ENVIRONMENT=test
+    depends_on:
+      - actuarial-api
+    volumes:
+      - ./tests:/app/tests
