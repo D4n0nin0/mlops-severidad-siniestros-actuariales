@@ -25,6 +25,7 @@ graph LR
     B --> C[Build Docker Image]
     C --> D[Test Docker Container]
     D --> E[Notify Results]
+```
 
 # 🏥 MLOps - Sistema de Predicción de Severidad de Siniestros Actuariales
 
@@ -40,6 +41,7 @@ chmod +x run_app.sh
 
 # Ejecutar la aplicación
 ./run_app.sh
+```
 
 ### Opción 2: Ejecucion manual paso a paso
 
